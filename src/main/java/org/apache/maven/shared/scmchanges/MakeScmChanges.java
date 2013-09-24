@@ -20,11 +20,6 @@ package org.apache.maven.shared.scmchanges;
  */
 
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
-
 import org.apache.maven.AbstractMavenLifecycleParticipant;
 import org.apache.maven.MavenExecutionException;
 import org.apache.maven.execution.MavenExecutionRequest;
@@ -40,9 +35,14 @@ import org.codehaus.plexus.component.annotations.Component;
 import org.codehaus.plexus.component.annotations.Requirement;
 import org.codehaus.plexus.logging.Logger;
 
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
+
 /**
  * Build only projects containing files that that you personally have changed (according to SCM)
- * 
+ *
  * @author <a href="mailto:dfabulich@apache.org">Dan Fabulich</a>
  */
 @Component( role = AbstractMavenLifecycleParticipant.class, hint = "scm-changes" )
@@ -60,16 +60,16 @@ public class MakeScmChanges
 
     /** make.ignoreUnknown: Ignore files in the "unknown" status (created but not added to source control) */
     boolean ignoreUnknown = true;
-    
+
     /** make.ignoreRootPom: Ignore changes in the root POM file, which would normally cause a full rebuild */
     boolean ignoreRootPom = false;
 
     /** Disabled by default; activate via -Dmake.scmChanges=true */
     boolean enabled = false;
-    
+
     /** make.baseDir: Search SCM for modified files in this directory.  Defaults to ${project.baseDir} for the root project. */
     File baseDir;
-    
+
     public void afterProjectsRead( MavenSession session )
         throws MavenExecutionException
     {
@@ -80,7 +80,6 @@ public class MakeScmChanges
             logger.debug( "make.scmChanges = false, not modifying project list" );
             return;
         }
-            
 
         List<ScmFile> changedFiles = getChangedFilesFromScm( baseDir );
 
@@ -103,12 +102,12 @@ public class MakeScmChanges
             }
 
             File changedFile = new File( changedScmFile.getPath() ).getAbsoluteFile();
-            
+
             if ( ignoreRootPom && topLevelProject.getFile().getAbsoluteFile().equals( changedFile) )
             {
                 continue;
             }
-            
+
             boolean found = false;
             // TODO There's a cleverer/faster way to code this, right? This is O(n^2)
             for ( MavenProject project : session.getProjects() )
@@ -119,17 +118,17 @@ public class MakeScmChanges
                     if (topLevelProject.equals( project )) {
                         // If we include the top level project, then we'll build everything.
                         // We have to be very careful before allowing that to happen.
-                        
+
                         // In particular, if the modified file is in a subdirectory X that is not itself
                         // a Maven project, we don't want that one file to cause a full build. 
                         // i.e. we ignore changes that are in a random subdirectory.
-                        
+
                         // Is the top level project actually in the baseDir?
                         // Sometimes people have sibling child projects, e.g.
                         // <module>../child-project</module>
                         // If the top level project isn't the baseDir, then running the whole build may be rational.
                         if (baseDir.equals(projectDirectory.getAbsoluteFile())) {
-                            
+
                             // is the changed file the baseDir or one of its immediate descendants?
                             // That should probably provoke a rebuild.
                             if (!(baseDir.equals( changedFile ) || baseDir.equals( changedFile.getParentFile() ))) {
@@ -156,9 +155,10 @@ public class MakeScmChanges
             }
         }
 
-        if ( includedProjects.isEmpty() )
-            throw new MavenExecutionException( "No SCM changes detected; nothing to do!",
-                                               topLevelProject.getFile() );
+        if (includedProjects.isEmpty()) {
+            logger.info("No SCM changes detected. Nothing to do!");
+            return;
+        }
 
         MavenExecutionRequest request = session.getRequest();
         String makeBehavior = request.getMakeBehavior();
@@ -197,7 +197,7 @@ public class MakeScmChanges
         enabled = Boolean.parseBoolean( sessionProps.getProperty( "make.scmChanges", "false" ) );
         ignoreUnknown = Boolean.parseBoolean( sessionProps.getProperty( "make.ignoreUnknown", "true" ) );
         ignoreRootPom = Boolean.parseBoolean( sessionProps.getProperty( "make.ignoreRootPom", "false" ) );
-        
+
         String basePath = sessionProps.getProperty( "make.baseDir" );
         if (basePath != null) {
             baseDir = new File(basePath).getAbsoluteFile();
