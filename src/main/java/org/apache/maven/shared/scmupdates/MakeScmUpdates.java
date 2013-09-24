@@ -141,9 +141,10 @@ public class MakeScmUpdates extends AbstractMavenLifecycleParticipant {
             }
         }
 
-        if (includedProjects.isEmpty())
-            throw new MavenExecutionException("No SCM updates detected; nothing to do!",
-                topLevelProject.getFile());
+        if (includedProjects.isEmpty()) {
+            logger.info("No SCM updates detected. Nothing to do!");
+            return;
+        }
 
         MavenExecutionRequest request = session.getRequest();
         String makeBehavior = request.getMakeBehavior();
