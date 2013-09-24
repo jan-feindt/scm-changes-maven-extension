@@ -19,17 +19,6 @@ package org.apache.maven.shared.scmchanges;
  * under the License.
  */
 
-import static org.hamcrest.core.Is.*;
-import static org.junit.Assert.*;
-import static org.mockito.Matchers.*;
-import static org.mockito.Mockito.*;
-
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Properties;
-
 import org.apache.maven.MavenExecutionException;
 import org.apache.maven.execution.DefaultMavenExecutionRequest;
 import org.apache.maven.execution.MavenExecutionRequest;
@@ -47,308 +36,298 @@ import org.junit.Before;
 import org.junit.Test;
 import org.powermock.api.mockito.PowerMockito;
 
-public class MakeScmChangesTest
-{
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Properties;
+
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+public class MakeScmChangesTest {
 
     MakeScmChanges msc;
 
     @Before
-    public void setUp()
-    {
+    public void setUp() {
         msc = new MakeScmChanges();
         msc.enabled = true;
-        msc.baseDir = new File( "" ).getAbsoluteFile();
-        msc.logger = mock( Logger.class );
+        msc.baseDir = new File("").getAbsoluteFile();
+        msc.logger = mock(Logger.class);
     }
 
-    @Test( expected = MavenExecutionException.class )
+    @Test(expected = MavenExecutionException.class)
     public void readParametersNoScmConnection()
-        throws Exception
-    {
-        MavenSession session = mock( MavenSession.class );
+        throws Exception {
+        MavenSession session = mock(MavenSession.class);
         Properties props = new Properties();
-        when( session.getUserProperties() ).thenReturn( props );
+        when(session.getUserProperties()).thenReturn(props);
 
-        msc.readParameters( session );
+        msc.readParameters(session);
     }
 
     @Test
     public void readParameters()
-        throws Exception
-    {
-        MavenSession session = mock( MavenSession.class );
+        throws Exception {
+        MavenSession session = mock(MavenSession.class);
         Properties props = new Properties();
-        when( session.getUserProperties() ).thenReturn( props );
+        when(session.getUserProperties()).thenReturn(props);
 
-        Scm scm = mock( Scm.class );
+        Scm scm = mock(Scm.class);
         String scmConnection = "foo";
-        when( scm.getConnection() ).thenReturn( scmConnection );
+        when(scm.getConnection()).thenReturn(scmConnection);
 
         MavenProject project = new MavenProject();
-        project.setScm( scm );
-        project.setFile( new File( "" ).getAbsoluteFile() );
+        project.setScm(scm);
+        project.setFile(new File("").getAbsoluteFile());
 
-        when( session.getTopLevelProject() ).thenReturn( project );
+        when(session.getTopLevelProject()).thenReturn(project);
 
-        msc.readParameters( session );
+        msc.readParameters(session);
 
-        assertThat( msc.enabled, is( false ) );
-        assertThat( msc.ignoreUnknown, is( true ) );
-        assertThat( msc.scmConnection, is( scmConnection ) );
+        assertThat(msc.enabled, is(false));
+        assertThat(msc.ignoreUnknown, is(true));
+        assertThat(msc.scmConnection, is(scmConnection));
     }
 
     @Test
     public void getChangedFilesFromScm()
-        throws Exception
-    {
-        StatusScmResult result = mock( StatusScmResult.class );
-        ScmManager scmManager = mock( ScmManager.class );
-        when( scmManager.status( (ScmRepository) any(), (ScmFileSet) any() ) ).thenReturn( result );
+        throws Exception {
+        StatusScmResult result = mock(StatusScmResult.class);
+        ScmManager scmManager = mock(ScmManager.class);
+        when(scmManager.status((ScmRepository) any(), (ScmFileSet) any())).thenReturn(result);
 
         msc.scmManager = scmManager;
 
-        msc.getChangedFilesFromScm( new File( "" ) );
+        msc.getChangedFilesFromScm(new File(""));
 
     }
 
-    @Test( expected = MavenExecutionException.class )
+    @Test(expected = MavenExecutionException.class)
     public void getChangedFilesFromScmFailure()
-        throws MavenExecutionException
-    {
-        msc.getChangedFilesFromScm( new File( "" ) );
+        throws MavenExecutionException {
+        msc.getChangedFilesFromScm(new File(""));
     }
 
     @Test
     public void disabled()
-        throws MavenExecutionException
-    {
-        MavenSession session = mock( MavenSession.class );
+        throws MavenExecutionException {
+        MavenSession session = mock(MavenSession.class);
         MavenExecutionRequest request = new DefaultMavenExecutionRequest();
-        when( session.getRequest() ).thenReturn( request );
+        when(session.getRequest()).thenReturn(request);
 
         msc.enabled = false;
 
-        msc = PowerMockito.spy( msc );
+        msc = PowerMockito.spy(msc);
 
-        PowerMockito.doNothing().when( msc ).readParameters( (MavenSession) any() );
+        PowerMockito.doNothing().when(msc).readParameters((MavenSession) any());
 
-        msc.afterProjectsRead( session );
-        assertTrue( request.getSelectedProjects().isEmpty() );
+        msc.afterProjectsRead(session);
+        assertTrue(request.getSelectedProjects().isEmpty());
 
     }
 
-    @Test( expected = MavenExecutionException.class )
+    @Test(expected = MavenExecutionException.class)
     public void nothingToDo()
-        throws MavenExecutionException
-    {
-        MavenSession session = mock( MavenSession.class );
+        throws MavenExecutionException {
+        MavenSession session = mock(MavenSession.class);
 
-        msc = PowerMockito.spy( msc );
+        msc = PowerMockito.spy(msc);
 
         // use default parameters
-        PowerMockito.doNothing().when( msc ).readParameters( (MavenSession) any() );
+        PowerMockito.doNothing().when(msc).readParameters((MavenSession) any());
 
         // SCM returns an empty list of changed files
         List<ScmFile> changedFiles = new ArrayList<ScmFile>();
 
-        PowerMockito.doReturn( changedFiles ).when( msc ).getChangedFilesFromScm( null );
+        PowerMockito.doReturn(changedFiles).when(msc).getChangedFilesFromScm(null);
 
-        MavenProject project = mock( MavenProject.class );
+        MavenProject project = mock(MavenProject.class);
 
-        when( session.getTopLevelProject() ).thenReturn( project );
+        when(session.getTopLevelProject()).thenReturn(project);
 
-        msc.afterProjectsRead( session );
+        msc.afterProjectsRead(session);
     }
 
     @Test
     public void normalFlow()
-        throws MavenExecutionException
-    {
-        MavenSession session = mock( MavenSession.class );
+        throws MavenExecutionException {
+        MavenSession session = mock(MavenSession.class);
 
-        msc = PowerMockito.spy( msc );
+        msc = PowerMockito.spy(msc);
 
         // use default parameters
-        PowerMockito.doNothing().when( msc ).readParameters( (MavenSession) any() );
+        PowerMockito.doNothing().when(msc).readParameters((MavenSession) any());
 
-        ScmFile changedFile = new ScmFile( "pom.xml", ScmFileStatus.MODIFIED );
+        ScmFile changedFile = new ScmFile("pom.xml", ScmFileStatus.MODIFIED);
 
-        List<ScmFile> changedFiles = Arrays.asList( changedFile );
+        List<ScmFile> changedFiles = Arrays.asList(changedFile);
 
-        PowerMockito.doReturn( changedFiles ).when( msc ).getChangedFilesFromScm( (File) any() );
+        PowerMockito.doReturn(changedFiles).when(msc).getChangedFilesFromScm((File) any());
 
         MavenProject project = new MavenProject();
 
-        project.setFile( new File( "pom.xml" ).getAbsoluteFile() );
+        project.setFile(new File("pom.xml").getAbsoluteFile());
 
-        when( session.getTopLevelProject() ).thenReturn( project );
+        when(session.getTopLevelProject()).thenReturn(project);
 
-        when( session.getProjects() ).thenReturn( Arrays.asList( project ) );
+        when(session.getProjects()).thenReturn(Arrays.asList(project));
 
         MavenExecutionRequest request = new DefaultMavenExecutionRequest();
-        when( session.getRequest() ).thenReturn( request );
+        when(session.getRequest()).thenReturn(request);
 
-        msc.afterProjectsRead( session );
+        msc.afterProjectsRead(session);
 
         List<String> selectedProjects = request.getSelectedProjects();
-        assertThat( selectedProjects.toString(), is( "[unknown:empty-project]" ) );
-        assertThat( request.getMakeBehavior(), is( MavenExecutionRequest.REACTOR_MAKE_DOWNSTREAM ) );
+        assertThat(selectedProjects.toString(), is("[unknown:empty-project]"));
+        assertThat(request.getMakeBehavior(), is(MavenExecutionRequest.REACTOR_MAKE_DOWNSTREAM));
     }
 
     @Test
     public void alreadyBuildingUpstream()
-        throws MavenExecutionException
-    {
-        MavenSession session = mock( MavenSession.class );
+        throws MavenExecutionException {
+        MavenSession session = mock(MavenSession.class);
 
-        msc = PowerMockito.spy( msc );
+        msc = PowerMockito.spy(msc);
 
         // use default parameters
-        PowerMockito.doNothing().when( msc ).readParameters( (MavenSession) any() );
+        PowerMockito.doNothing().when(msc).readParameters((MavenSession) any());
 
-        ScmFile changedFile = new ScmFile( "pom.xml", ScmFileStatus.MODIFIED );
+        ScmFile changedFile = new ScmFile("pom.xml", ScmFileStatus.MODIFIED);
 
-        List<ScmFile> changedFiles = Arrays.asList( changedFile );
+        List<ScmFile> changedFiles = Arrays.asList(changedFile);
 
-        PowerMockito.doReturn( changedFiles ).when( msc ).getChangedFilesFromScm( (File) any() );
+        PowerMockito.doReturn(changedFiles).when(msc).getChangedFilesFromScm((File) any());
 
         MavenProject project = new MavenProject();
 
-        project.setFile( new File( "pom.xml" ).getAbsoluteFile() );
+        project.setFile(new File("pom.xml").getAbsoluteFile());
 
-        when( session.getTopLevelProject() ).thenReturn( project );
+        when(session.getTopLevelProject()).thenReturn(project);
 
-        when( session.getProjects() ).thenReturn( Arrays.asList( project ) );
+        when(session.getProjects()).thenReturn(Arrays.asList(project));
 
         MavenExecutionRequest request = new DefaultMavenExecutionRequest();
-        request.setMakeBehavior( MavenExecutionRequest.REACTOR_MAKE_UPSTREAM );
-        when( session.getRequest() ).thenReturn( request );
+        request.setMakeBehavior(MavenExecutionRequest.REACTOR_MAKE_UPSTREAM);
+        when(session.getRequest()).thenReturn(request);
 
-        msc.afterProjectsRead( session );
+        msc.afterProjectsRead(session);
 
         List<String> selectedProjects = request.getSelectedProjects();
-        assertThat( selectedProjects.toString(), is( "[unknown:empty-project]" ) );
-        assertThat( request.getMakeBehavior(), is( MavenExecutionRequest.REACTOR_MAKE_BOTH ) );
+        assertThat(selectedProjects.toString(), is("[unknown:empty-project]"));
+        assertThat(request.getMakeBehavior(), is(MavenExecutionRequest.REACTOR_MAKE_BOTH));
     }
 
-    @Test( expected = MavenExecutionException.class )
-    public void nothingToDoBecauseIgnoringRootPom()
-        throws MavenExecutionException
-    {
-        MavenSession session = mock( MavenSession.class );
+    @Test
+    public void nothingToDoBecauseIgnoringRootPom() throws MavenExecutionException {
+        MavenSession session = mock(MavenSession.class);
 
         msc.ignoreRootPom = true;
 
-        msc = PowerMockito.spy( msc );
+        msc = PowerMockito.spy(msc);
 
         // use default parameters
-        PowerMockito.doNothing().when( msc ).readParameters( (MavenSession) any() );
+        PowerMockito.doNothing().when(msc).readParameters((MavenSession) any());
 
-        ScmFile changedFile = new ScmFile( "pom.xml", ScmFileStatus.MODIFIED );
+        ScmFile changedFile = new ScmFile("pom.xml", ScmFileStatus.MODIFIED);
 
-        List<ScmFile> changedFiles = Arrays.asList( changedFile );
+        List<ScmFile> changedFiles = Arrays.asList(changedFile);
 
-        PowerMockito.doReturn( changedFiles ).when( msc ).getChangedFilesFromScm( (File) any() );
+        PowerMockito.doReturn(changedFiles).when(msc).getChangedFilesFromScm((File) any());
 
         MavenProject project = new MavenProject();
 
-        project.setFile( new File( "pom.xml" ).getAbsoluteFile() );
+        project.setFile(new File("pom.xml").getAbsoluteFile());
 
-        when( session.getTopLevelProject() ).thenReturn( project );
+        when(session.getTopLevelProject()).thenReturn(project);
 
-        when( session.getProjects() ).thenReturn( Arrays.asList( project ) );
+        when(session.getProjects()).thenReturn(Arrays.asList(project));
 
-        msc.afterProjectsRead( session );
-
+        msc.afterProjectsRead(session);
     }
 
-    @Test( expected = MavenExecutionException.class )
-    public void nothingToDoBecauseIgnoringUnknown()
-        throws MavenExecutionException
-    {
-        MavenSession session = mock( MavenSession.class );
+    @Test
+    public void nothingToDoBecauseIgnoringUnknown() throws MavenExecutionException {
+        MavenSession session = mock(MavenSession.class);
 
         msc.ignoreUnknown = true;
 
-        msc = PowerMockito.spy( msc );
+        msc = PowerMockito.spy(msc);
 
         // use default parameters
-        PowerMockito.doNothing().when( msc ).readParameters( (MavenSession) any() );
+        PowerMockito.doNothing().when(msc).readParameters((MavenSession) any());
 
-        ScmFile changedFile = new ScmFile( "pom.xml", ScmFileStatus.UNKNOWN );
+        ScmFile changedFile = new ScmFile("pom.xml", ScmFileStatus.UNKNOWN);
 
-        List<ScmFile> changedFiles = Arrays.asList( changedFile );
+        List<ScmFile> changedFiles = Arrays.asList(changedFile);
 
-        PowerMockito.doReturn( changedFiles ).when( msc ).getChangedFilesFromScm( (File) any() );
+        PowerMockito.doReturn(changedFiles).when(msc).getChangedFilesFromScm((File) any());
 
         MavenProject project = new MavenProject();
 
-        project.setFile( new File( "pom.xml" ).getAbsoluteFile() );
+        project.setFile(new File("pom.xml").getAbsoluteFile());
 
-        when( session.getTopLevelProject() ).thenReturn( project );
+        when(session.getTopLevelProject()).thenReturn(project);
 
-        when( session.getProjects() ).thenReturn( Arrays.asList( project ) );
+        when(session.getProjects()).thenReturn(Arrays.asList(project));
 
-        msc.afterProjectsRead( session );
-
+        msc.afterProjectsRead(session);
     }
 
-    @Test( expected = MavenExecutionException.class )
-    public void nothingToDoBecauseIgnoringMissing()
-        throws MavenExecutionException
-    {
-        MavenSession session = mock( MavenSession.class );
+    @Test
+    public void nothingToDoBecauseIgnoringMissing() throws MavenExecutionException {
+        MavenSession session = mock(MavenSession.class);
 
-        msc = PowerMockito.spy( msc );
+        msc = PowerMockito.spy(msc);
 
         // use default parameters
-        PowerMockito.doNothing().when( msc ).readParameters( (MavenSession) any() );
+        PowerMockito.doNothing().when(msc).readParameters((MavenSession) any());
 
-        ScmFile changedFile = new ScmFile( "pom.xml", ScmFileStatus.MISSING );
+        ScmFile changedFile = new ScmFile("pom.xml", ScmFileStatus.MISSING);
 
-        List<ScmFile> changedFiles = Arrays.asList( changedFile );
+        List<ScmFile> changedFiles = Arrays.asList(changedFile);
 
-        PowerMockito.doReturn( changedFiles ).when( msc ).getChangedFilesFromScm( (File) any() );
+        PowerMockito.doReturn(changedFiles).when(msc).getChangedFilesFromScm((File) any());
 
         MavenProject project = new MavenProject();
 
-        project.setFile( new File( "pom.xml" ).getAbsoluteFile() );
+        project.setFile(new File("pom.xml").getAbsoluteFile());
 
-        when( session.getTopLevelProject() ).thenReturn( project );
+        when(session.getTopLevelProject()).thenReturn(project);
 
-        when( session.getProjects() ).thenReturn( Arrays.asList( project ) );
+        when(session.getProjects()).thenReturn(Arrays.asList(project));
 
-        msc.afterProjectsRead( session );
-
+        msc.afterProjectsRead(session);
     }
 
-    @Test( expected = MavenExecutionException.class )
-    public void nothingToDoBecauseIgnoringRandomSubdirectory()
-        throws MavenExecutionException
-    {
-        MavenSession session = mock( MavenSession.class );
+    @Test
+    public void nothingToDoBecauseIgnoringRandomSubdirectory() throws MavenExecutionException {
+        MavenSession session = mock(MavenSession.class);
 
-        msc = PowerMockito.spy( msc );
+        msc = PowerMockito.spy(msc);
 
         // use default parameters
-        PowerMockito.doNothing().when( msc ).readParameters( (MavenSession) any() );
+        PowerMockito.doNothing().when(msc).readParameters((MavenSession) any());
 
-        ScmFile changedFile = new ScmFile( "foo/pom.xml", ScmFileStatus.MODIFIED );
+        ScmFile changedFile = new ScmFile("foo/pom.xml", ScmFileStatus.MODIFIED);
 
-        List<ScmFile> changedFiles = Arrays.asList( changedFile );
+        List<ScmFile> changedFiles = Arrays.asList(changedFile);
 
-        PowerMockito.doReturn( changedFiles ).when( msc ).getChangedFilesFromScm( (File) any() );
+        PowerMockito.doReturn(changedFiles).when(msc).getChangedFilesFromScm((File) any());
 
         MavenProject project = new MavenProject();
 
-        project.setFile( new File( "pom.xml" ).getAbsoluteFile() );
+        project.setFile(new File("pom.xml").getAbsoluteFile());
 
-        when( session.getTopLevelProject() ).thenReturn( project );
+        when(session.getTopLevelProject()).thenReturn(project);
 
-        when( session.getProjects() ).thenReturn( Arrays.asList( project ) );
+        when(session.getProjects()).thenReturn(Arrays.asList(project));
 
-        msc.afterProjectsRead( session );
-
+        msc.afterProjectsRead(session);
     }
-
 }
