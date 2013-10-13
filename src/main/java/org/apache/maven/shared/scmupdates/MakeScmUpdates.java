@@ -33,7 +33,6 @@ import java.io.IOException;
 import java.util.*;
 
 import static java.lang.System.lineSeparator;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
 import static org.codehaus.plexus.util.FileUtils.fileRead;
 
@@ -167,7 +166,7 @@ public class MakeScmUpdates extends AbstractMavenLifecycleParticipant {
 
         String savedFileListPath = (new File(baseDir, ".scm-updates")).getAbsolutePath();
         try {
-            String fileContent = fileRead(savedFileListPath, UTF_8.name());
+            String fileContent = fileRead(savedFileListPath, "UTF-8");
             updatedFiles.addAll(asList(fileContent.split(lineSeparator())));
         } catch (IOException e) {
             throw new MavenExecutionException(
