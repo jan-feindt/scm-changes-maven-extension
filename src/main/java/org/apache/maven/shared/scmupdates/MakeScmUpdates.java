@@ -78,7 +78,7 @@ public class MakeScmUpdates extends AbstractMavenLifecycleParticipant {
 
         MavenProject topLevelProject = session.getTopLevelProject();
         for (String updatedFilePath : updatedFiles) {
-            logger.debug(updatedFilePath);
+            logger.info("Updated " + updatedFilePath);
 
             File updatedFile = new File(baseDir, updatedFilePath);
 
@@ -117,7 +117,7 @@ public class MakeScmUpdates extends AbstractMavenLifecycleParticipant {
                         }
                     }
                     if (!includedProjects.contains(project)) {
-                        logger.debug("Including " + project);
+                        logger.info("Including " + project);
                     }
                     includedProjects.add(project.getGroupId() + ":" + project.getArtifactId());
                     found = true;
