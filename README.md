@@ -39,3 +39,12 @@ IF IT DOESN'T APPEAR TO BE WORKING:  Try running mvn with -X to get debug logs.
 Note that if you modify the root POM (to add this extension) without checking it in, then EVERYTHING is downstream of
 the root POM, so -Dmake.scmChanges will cause a full rebuild; it will appear as if it's not working. You can use
 -Dmake.ignoreRootPom to ignore changes in the root POM while testing this extension.
+
+To run on CI define the extension as before. You have to use the extension with additional scripts like this for subversion:
+
+    svn diff -r BASE:HEAD | grep ^Index: | sed 's/^Index: //' >> .scm-updates
+    svn update
+    mvn install -Dmake.scmUpdates
+    rm .scm-updates
+
+That will build only those projects that have changes in SCM, and projects that depend on those projects (downstream).
